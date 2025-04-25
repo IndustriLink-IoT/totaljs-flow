@@ -2,6 +2,7 @@ exports.install = function() {
 	ROUTE('+GET /', index);
 	ROUTE('+GET /designer/');
 	ROUTE('-GET /', login);
+	ROUTE('-GET /components', components)
 };
 
 function index($) {
@@ -44,4 +45,22 @@ function login($) {
 			$.fallback(401);
 	} else
 		$.view('login');
+}
+
+function components($) {
+	var filePath = PATH.root('flowstream/flowstreamcomponents/db.json');
+
+	F.Fs.readFile(filePath, 'utf8', function(err, data) {
+		if (err) {
+			$.throw404(); // File not found or failed to read
+			return;
+		}
+
+		try {
+			var json = JSON.parse(data);
+			$.json(json); // Send as JSON response
+		} catch (e) {
+			$.throw500(e); // JSON parse error
+		}
+	});
 }

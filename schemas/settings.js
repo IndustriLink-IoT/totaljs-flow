@@ -135,7 +135,7 @@ ON('ready', function() {
 		CONF.backup = PREF.backup;
 
 	if (!PREF.components)
-		PREF.components = 'https://cdn.totaljs.com/flowstream/webcomponents/db.json';
+		PREF.components = 'http://localhost:8000/components';
 
 	if (!PREF.templates)
 		PREF.templates = 'https://cdn.totaljs.com/flowstream/templates/db.json';

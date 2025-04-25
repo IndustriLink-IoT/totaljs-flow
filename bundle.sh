@@ -1,44 +1,60 @@
-#!/usr/bin/env node
+#!/bin/bash
+BUNDLE_PATH="--bundles--"
+mkdir -p $BUNDLE_PATH
+mkdir -p .bundle
+cd .bundle
+echo "|-- Total.js bundle compiler"
+echo "| |-- app.bundle"
+time_start=$(date +%s.%N)
 
-require('total5');
+# Copy directories for main bundle
+cp -a ../controllers/ controllers
+cp -a ../definitions/ definitions
+cp -a ../modules/ modules
+cp -a ../public/ public
+cp -a ../schemas/ schemas
+cp -a ../views/ views
+cp -a ../resources/ resources
 
-var path = '--bundles--';
+# Only create the plugins directory (no contents) for the main bundle
+mkdir -p plugins
 
-function buildplugin(name, callback) {
-	console.log('| |--', name + '.bundle');
-	Total.backup(path + '/' + name + '.bundle', PATH.root(), callback, function(path, isdir) {
-		return path === '/' || path === '/plugins/' || (path.indexOf('plugins/' + name) !== -1);
-	});
-}
+# Bundle main app (with empty plugins directory)
+total5 bundle app.bundle
+cp app.bundle ../$BUNDLE_PATH/app.bundle
 
-console.log('|-- Total.js bundle compiler');
-console.time('|-- Compilation');
+# Build plugin bundles
+echo "| |-- Building plugin bundles"
+if [ -d "../plugins" ]; then
+  for plugin_dir in ../plugins/*; do
+    if [ -d "$plugin_dir" ]; then
+      plugin_name=$(basename "$plugin_dir")
+      echo "| |-- $plugin_name.bundle"
+      
+      # Create a clean directory structure
+      rm -rf temp_plugin_bundle
+      mkdir -p temp_plugin_bundle/plugins/$plugin_name
+      
+      # Copy all the plugin's content
+      cp -a $plugin_dir/* temp_plugin_bundle/plugins/$plugin_name/
+      
+      # Create the bundle from the temp directory
+      cd temp_plugin_bundle
+      total5 bundle $plugin_name.bundle .
+      cp $plugin_name.bundle ../../$BUNDLE_PATH/
+      cd ..
+      
+      # Clean up
+      rm -rf temp_plugin_bundle
+    fi
+  done
+fi
 
-console.log('| |--', 'app.bundle');
-Total.backup(path + '/app.bundle', PATH.root(), function() {
-	F.Fs.readdir(PATH.root('plugins'), function(err, response) {
-		response.wait(function(key, next) {
-			buildplugin(key, next);
-		}, function() {
-			console.timeEnd('|-- Compilation');
-		});
-	});
-}, function(path, isdir) {
+# Return to parent directory and cleanup
+cd ..
+rm -rf .bundle
 
-	if (!isdir)
-		return path.split('/').length > 2;
-
-	var p = path.split('/').trim();
-
-	if (!p[0] || (p.length === 1 && p[0] === 'plugins'))
-		return true;
-
-	var allowed = ['controllers', 'definitions', 'modules', 'public', 'schemas', 'views', 'resources'];
-
-	for (var m of allowed) {
-		if (path.indexOf(m) === 1)
-			return true;
-	}
-
-	return false;
-});
+# Calculate and display execution time
+time_end=$(date +%s.%N)
+execution_time=$(echo "$time_end - $time_start" | bc)
+echo "|-- Compilation: ${execution_time}s"
