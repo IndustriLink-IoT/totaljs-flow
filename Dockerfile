@@ -8,8 +8,11 @@ RUN mkdir -p /www/bundles
 COPY index.js .
 COPY config .
 COPY package.json .
+COPY /flowstream/flowstreamcomponents ./bundles/
 COPY /--bundles--/app.bundle ./bundles/
 COPY /--bundles--/bookmarks.bundle ./bundles/
+
+COPY flowstream/ ./flowstream/
 
 RUN npm install
 EXPOSE 8000
